@@ -4,7 +4,7 @@ Show templated values in files
 
 ```bash
 $ helm pull bitnami/postgresql --version 12.1.1
-$ ./bin/helmsplain ~/Downloads/postgresql-12.1.1.tgz
+$ ./bin/helmsplain postgresql-12.1.1.tgz
 /postgresql/charts/common/README.md
      .Values.password
 /postgresql/templates/primary/statefulset.yaml
