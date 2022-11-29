@@ -1,0 +1,36 @@
+project_name: helmsplain
+release:
+  github:
+    owner: divolgin
+    name: helmsplain
+  prerelease: "true"
+builds:
+  - id: helmsplain
+    goos:
+    - linux
+    - darwin
+    goarch:
+    - amd64
+    env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+    main: helmsplain.go
+    ldflags: -s -w
+    binary: helmsplain
+    hooks: {}
+
+archives:
+  - id: helmsplain
+    builds:
+      - helmsplain
+    format: tar.gz
+    name_template: '{{ .Binary }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - licence*
+      - LICENCE*
+      - license*
+      - LICENSE*
+      - readme*
+      - README*
+      - changelog*
+      - CHANGELOG*
