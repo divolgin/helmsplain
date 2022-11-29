@@ -5,6 +5,7 @@ import (
 	"strings"
 	"text/template/parse"
 
+	"github.com/divolgin/helmsplain/pkg/log"
 	"github.com/pkg/errors"
 )
 
@@ -58,16 +59,32 @@ func GetFromData(data string) []string {
 func getFromTree(node parse.Node) []string {
 	result := []string{}
 
-	if node.Type() == parse.NodeCommand {
+	log.Debugf("node:%s -> %s\n", nodeTypes[node.Type()], node.String())
+
+	if node.Type() == parse.NodeField {
 		ref := node.String()
 		if strings.HasPrefix(ref, ".Values.") {
 			result = append(result, ref)
 		}
+	} else if node.Type() == parse.NodeCommand {
+		ref := node.String()
+		if strings.HasPrefix(ref, ".Values.") {
+			result = append(result, ref)
+		} else {
+			for _, arg := range node.(*parse.CommandNode).Args {
+				result = append(result, getFromTree(arg)...)
+			}
+		}
+	} else if node.Type() == parse.NodePipe {
+		for _, cmd := range node.(*parse.PipeNode).Cmds {
+			result = append(result, getFromTree(cmd)...)
+		}
 	} else if node.Type() == parse.NodeAction {
 		for _, cmd := range node.(*parse.ActionNode).Pipe.Cmds {
-			refs := getFromTree(cmd)
-			result = append(result, refs...)
+			result = append(result, getFromTree(cmd)...)
 		}
+	} else if node.Type() != parse.NodeText { // text nodes dump a lot in the output
+		log.Debugf("%#v\n", node)
 	}
 
 	if ln, ok := node.(*parse.ListNode); ok {

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/divolgin/helmsplain/pkg/log"
 	"github.com/divolgin/helmsplain/pkg/values"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -27,7 +28,9 @@ func RootCmd() *cobra.Command {
 			viper.BindPFlags(cmd.Flags())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// v := viper.GetViper()
+			v := viper.GetViper()
+
+			log.SetDebug(v.GetBool("debug"))
 
 			if len(args) == 0 {
 				// TODO: implement
@@ -44,6 +47,8 @@ func RootCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().Bool("debug", false, "set to true to enable debug output")
 
 	viper.BindPFlags(cmd.Flags())
 

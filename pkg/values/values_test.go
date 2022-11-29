@@ -13,8 +13,15 @@ func TestGetFromData(t *testing.T) {
 		want     []string
 	}{
 		{
-			name:     "basic template",
+			name:     "basic template with pipe",
 			template: `<h1>{{.Values.images.tag | quote }} {{ .age }}</h1>`,
+			want: []string{
+				".Values.images.tag",
+			},
+		},
+		{
+			name:     "basic template with function",
+			template: `<h1>{{ (quote .Values.images.tag) }}</h1>`,
 			want: []string{
 				".Values.images.tag",
 			},
