@@ -51,7 +51,7 @@ func GetFromFiles(filenames ...string) ([]string, error) {
 }
 
 func GetFromData(data string) []string {
-	t := template.Must(template.New("t").Parse(data))
+	t := template.Must(template.New("t").Funcs(funcMap()).Parse(data))
 	return getFromTree(t.Tree.Root)
 }
 
