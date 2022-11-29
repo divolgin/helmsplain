@@ -83,6 +83,18 @@ func getFromTree(node parse.Node) []string {
 		for _, cmd := range node.(*parse.ActionNode).Pipe.Cmds {
 			result = append(result, getFromTree(cmd)...)
 		}
+	} else if node.Type() == parse.NodeIf {
+		ifNode := node.(*parse.IfNode)
+		if ifNode.List != nil {
+			for _, n := range ifNode.List.Nodes {
+				result = append(result, getFromTree(n)...)
+			}
+		}
+		if ifNode.ElseList != nil {
+			for _, n := range ifNode.ElseList.Nodes {
+				result = append(result, getFromTree(n)...)
+			}
+		}
 	} else if node.Type() != parse.NodeText { // text nodes dump a lot in the output
 		log.Debugf("%#v\n", node)
 	}

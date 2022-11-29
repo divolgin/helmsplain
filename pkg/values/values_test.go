@@ -3,10 +3,13 @@ package values
 import (
 	"testing"
 
+	"github.com/divolgin/helmsplain/pkg/log"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetFromData(t *testing.T) {
+	log.SetDebug(true)
+
 	tests := []struct {
 		name     string
 		template string
@@ -24,6 +27,14 @@ func TestGetFromData(t *testing.T) {
 			template: `<h1>{{ (quote .Values.images.tag) }}</h1>`,
 			want: []string{
 				".Values.images.tag",
+			},
+		},
+		{
+			name:     "using conditionals",
+			template: `<h1>{{ if true }} some text {{ (quote .Values.images.tag) }} some more text {{else}} {{ .Values.registry.host }} {{end}}`,
+			want: []string{
+				".Values.images.tag",
+				".Values.registry.host",
 			},
 		},
 	}
