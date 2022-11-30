@@ -120,7 +120,7 @@ func printValuesInFile(filename string, filenameMask string) {
 
 	fmt.Printf("%s\n", strings.TrimPrefix(filename, filenameMask))
 	for _, ref := range refs {
-		fmt.Println("    ", ref)
+		fmt.Printf("    %7d    %s\n", ref.Pos, ref.Key)
 	}
 }
 

@@ -13,35 +13,50 @@ func TestGetFromData(t *testing.T) {
 	tests := []struct {
 		name     string
 		template string
-		want     []string
+		want     []Value
 	}{
 		{
 			name:     "basic template with pipe",
 			template: `<h1>{{.Values.images.tag | quote }} {{ .age }}</h1>`,
-			want: []string{
-				".Values.images.tag",
+			want: []Value{
+				{
+					Key: ".Values.images.tag",
+					Pos: 6,
+				},
 			},
 		},
 		{
 			name:     "basic template with function",
 			template: `<h1>{{ (quote .Values.images.tag) }}</h1>`,
-			want: []string{
-				".Values.images.tag",
+			want: []Value{
+				{
+					Key: ".Values.images.tag",
+					Pos: 21,
+				},
 			},
 		},
 		{
 			name:     "using conditionals",
 			template: `<h1>{{ if true }} some text {{ (quote .Values.images.tag) }} some more text {{else}} {{ .Values.registry.host }} {{end}}`,
-			want: []string{
-				".Values.images.tag",
-				".Values.registry.host",
+			want: []Value{
+				{
+					Key: ".Values.images.tag",
+					Pos: 45,
+				},
+				{
+					Key: ".Values.registry.host",
+					Pos: 88,
+				},
 			},
 		},
 		{
 			name:     "using 'with' in template with function",
 			template: `<h1>{{with .Values}} some text {{ (quote .images.tag) }} some more text {{end}}`,
-			want: []string{
-				".Values.images.tag",
+			want: []Value{
+				{
+					Key: ".Values.images.tag",
+					Pos: 48,
+				},
 			},
 		},
 	}
