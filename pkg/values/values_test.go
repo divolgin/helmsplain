@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetFromData(t *testing.T) {
-	log.SetDebug(true)
+	log.SetDebug(false)
 
 	tests := []struct {
 		name     string
@@ -35,6 +35,13 @@ func TestGetFromData(t *testing.T) {
 			want: []string{
 				".Values.images.tag",
 				".Values.registry.host",
+			},
+		},
+		{
+			name:     "using 'with' in template with function",
+			template: `<h1>{{with .Values}} some text {{ (quote .images.tag) }} some more text {{end}}`,
+			want: []string{
+				".Values.images.tag",
 			},
 		},
 	}

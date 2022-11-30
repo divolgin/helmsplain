@@ -9,14 +9,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+// this is for nice output only
 var nodeTypes = map[parse.NodeType]string{
-	parse.NodeText:    "NodeText",
-	parse.NodeAction:  "NodeAction",
-	parse.NodeBool:    "NodeBool",
-	parse.NodeChain:   "NodeChain",
-	parse.NodeCommand: "NodeCommand",
-	parse.NodeDot:     "NodeDot",
-
+	parse.NodeText:       "NodeText",
+	parse.NodeAction:     "NodeAction",
+	parse.NodeBool:       "NodeBool",
+	parse.NodeChain:      "NodeChain",
+	parse.NodeCommand:    "NodeCommand",
+	parse.NodeDot:        "NodeDot",
 	parse.NodeField:      "NodeField",
 	parse.NodeIdentifier: "NodeIdentifier",
 	parse.NodeIf:         "NodeIf",
@@ -45,7 +45,7 @@ func GetFromFiles(filenames ...string) ([]string, error) {
 		if tmpl.Tree == nil {
 			continue
 		}
-		result = append(result, getFromTree(tmpl.Tree.Root)...)
+		result = append(result, getFromNode(tmpl.Tree.Root, "")...)
 	}
 
 	return result, nil
@@ -53,56 +53,125 @@ func GetFromFiles(filenames ...string) ([]string, error) {
 
 func GetFromData(data string) []string {
 	t := template.Must(template.New("t").Funcs(funcMap()).Parse(data))
-	return getFromTree(t.Tree.Root)
+	return getFromNode(t.Tree.Root, "")
 }
 
-func getFromTree(node parse.Node) []string {
+func getFromNode(node parse.Node, withPrefix string) []string {
 	result := []string{}
 
 	log.Debugf("node:%s -> %s\n", nodeTypes[node.Type()], node.String())
 
-	if node.Type() == parse.NodeField {
-		ref := node.String()
-		if strings.HasPrefix(ref, ".Values.") {
-			result = append(result, ref)
-		}
-	} else if node.Type() == parse.NodeCommand {
-		ref := node.String()
-		if strings.HasPrefix(ref, ".Values.") {
-			result = append(result, ref)
-		} else {
-			for _, arg := range node.(*parse.CommandNode).Args {
-				result = append(result, getFromTree(arg)...)
-			}
-		}
-	} else if node.Type() == parse.NodePipe {
+	switch node.Type() {
+	case parse.NodeField:
+		return getFromFieldNode(node.(*parse.FieldNode), withPrefix)
+
+	case parse.NodeCommand:
+		return getFromCommandNode(node.(*parse.CommandNode), withPrefix)
+
+	case parse.NodePipe:
 		for _, cmd := range node.(*parse.PipeNode).Cmds {
-			result = append(result, getFromTree(cmd)...)
+			result = append(result, getFromNode(cmd, withPrefix)...)
 		}
-	} else if node.Type() == parse.NodeAction {
+
+	case parse.NodeAction:
 		for _, cmd := range node.(*parse.ActionNode).Pipe.Cmds {
-			result = append(result, getFromTree(cmd)...)
+			result = append(result, getFromNode(cmd, withPrefix)...)
 		}
-	} else if node.Type() == parse.NodeIf {
-		ifNode := node.(*parse.IfNode)
-		if ifNode.List != nil {
-			for _, n := range ifNode.List.Nodes {
-				result = append(result, getFromTree(n)...)
-			}
+
+	case parse.NodeIf:
+		return getFromIfNode(node.(*parse.IfNode), withPrefix)
+
+	case parse.NodeWith:
+		return getFromWithNode(node.(*parse.WithNode), withPrefix)
+
+	case parse.NodeList:
+		for _, n := range node.(*parse.ListNode).Nodes {
+			refs := getFromNode(n, withPrefix)
+			result = append(result, refs...)
 		}
-		if ifNode.ElseList != nil {
-			for _, n := range ifNode.ElseList.Nodes {
-				result = append(result, getFromTree(n)...)
-			}
-		}
-	} else if node.Type() != parse.NodeText { // text nodes dump a lot in the output
+
+	case parse.NodeText:
+		// no-op for now
+
+	default:
+		// text nodes dump a lot in the output
 		log.Debugf("%#v\n", node)
 	}
 
-	if ln, ok := node.(*parse.ListNode); ok {
-		for _, n := range ln.Nodes {
-			refs := getFromTree(n)
-			result = append(result, refs...)
+	return result
+}
+
+func getFromFieldNode(node *parse.FieldNode, withPrefix string) []string {
+	result := []string{}
+
+	ref := node.String()
+	if strings.HasPrefix(ref, ".") {
+		ref = withPrefix + ref
+		if strings.HasPrefix(ref, ".Values.") {
+			result = append(result, ref)
+		}
+	}
+
+	return result
+}
+
+func getFromCommandNode(node *parse.CommandNode, withPrefix string) []string {
+	result := []string{}
+
+	ref := node.String()
+	if strings.HasPrefix(ref, ".") {
+		ref = withPrefix + ref
+		if strings.HasPrefix(ref, ".Values.") {
+			result = append(result, ref)
+		}
+	} else {
+		for _, arg := range node.Args {
+			result = append(result, getFromNode(arg, withPrefix)...)
+		}
+	}
+
+	return result
+}
+
+func getFromIfNode(node *parse.IfNode, withPrefix string) []string {
+	result := []string{}
+
+	for _, cmd := range node.Pipe.Cmds {
+		result = append(result, getFromNode(cmd, withPrefix)...)
+	}
+	if node.List != nil {
+		for _, n := range node.List.Nodes {
+			result = append(result, getFromNode(n, withPrefix)...)
+		}
+	}
+	if node.ElseList != nil {
+		for _, n := range node.ElseList.Nodes {
+			result = append(result, getFromNode(n, withPrefix)...)
+		}
+	}
+
+	return result
+}
+
+func getFromWithNode(node *parse.WithNode, withPrefix string) []string {
+	result := []string{}
+
+	for _, cmd := range node.Pipe.Cmds {
+		cmdString := cmd.String()
+		if strings.HasPrefix(cmdString, ".") {
+			withPrefix = withPrefix + cmdString
+		} else {
+			result = append(result, getFromNode(cmd, withPrefix)...)
+		}
+	}
+	if node.List != nil {
+		for _, n := range node.List.Nodes {
+			result = append(result, getFromNode(n, withPrefix)...)
+		}
+	}
+	if node.ElseList != nil {
+		for _, n := range node.ElseList.Nodes {
+			result = append(result, getFromNode(n, withPrefix)...)
 		}
 	}
 
